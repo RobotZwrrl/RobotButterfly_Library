@@ -1,4 +1,4 @@
-#define RTOS_ENABLED       true
+#define RTOS_ENABLED            true
 
 // ------ buttons rtos -------
 #define STACK_BUTTONS            2000   // task stack size

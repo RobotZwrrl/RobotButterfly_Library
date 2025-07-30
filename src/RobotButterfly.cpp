@@ -1,10 +1,30 @@
 #include "RobotButterfly.h"
 
+// -- state machine --
 volatile bool new_enter = false;
 volatile bool new_update = false;
 volatile bool enter_state = false;
 volatile bool update_state = false;
 volatile bool new_print = false;
+// --
+
+// -- servo calibration --
+volatile bool SERVO_CAL_MODE = false;
+volatile bool left_cal_dir = true;
+volatile int left_cal_mode = 0;
+volatile bool right_cal_dir = true;
+volatile int right_cal_mode = 0;
+volatile bool button_calib_changed = false;
+volatile int servo_calib_pos_left = 0;
+volatile int servo_calib_pos_right = 0;
+// --
+
+// -- startup --
+extern volatile bool BATTERY_AA_MODE = true;
+extern volatile long start_del = 0;
+extern volatile bool hold_notif_action = false;
+// --
+
 
 hw_timer_t* RobotButterfly::timer_state_cfg = NULL;
 
@@ -41,22 +61,51 @@ RobotButterfly::RobotButterfly() {
 // state_machine refers to automatically using the buttons to
 // increment / decrement the state. for simple sketches this might
 // not be desired
-void RobotButterfly::init(bool init_servos, bool state_machine) {
+void RobotButterfly::init(bool init_servos, bool state_machine_control) {
   
-  initStateMachine();
-  initButtons();
   initSound();
-  initIMU();
   initNeopixels();
   initNeoAnimations();
-  if(init_servos) {
-    initServos(SERVO_MODE_INIT_BOTH);
-    initServoAnimations();
+
+  // -- buffer --
+  // this playing multiple times on startup is an
+  // indicator that the robot is being powered by
+  // AA batteries because a few brownouts will
+  // occur as the robot stabilises on startup when
+  // moving its wings to the initial position.
+  // having this sound helps for debugging and also
+  // gives a cheeky characteristic (sounds like a 
+  // robot giggling haha).
+  playSound(SOUND_FLUTTER_JOY);
+
+  setNeoAnim(&neo_animation_home, NEO_ANIM_FUNKY, NEO_ANIM_ALERT);
+  setNeoAnimColours(&neo_animation_home, NEO_LAVENDER, NEO_SKY_BLUE);
+  setNeoAnimSpeed(&neo_animation_home, 300);
+  startNeoAnim(&neo_animation_home);
+
+  start_del = millis();
+  while(millis()-start_del < 300) {
+    updateNeoAnimation();
+    updateSound();
+    delay(1);
   }
+  // --
+
+  initStateMachine();
+  initButtons();
+  if(init_servos) {
+    // initialise the servos depending on if the AA
+    // batteries are in use or not. if they are,
+    // take some time to initialise each side
+    batteryCheck();
+  }
+  initIMU();
   initSensors();
   initProximity();
 
-  CHANGE_STATES_CONTROL = state_machine;
+  setStartupPriorities();
+
+  CHANGE_STATES_CONTROL = state_machine_control;
   MAX_STATES_COUNT = 0;
 
   // -- button callbacks --
@@ -141,7 +190,48 @@ void RobotButterfly::init(bool init_servos, bool state_machine) {
 // - good for when rtos mode is enabled
 void RobotButterfly::update() {
 
-  updateStateMachine();
+  // servo calibration mode 'overwrites' all the states
+  if(SERVO_CAL_MODE) {
+
+    if(button_calib_changed) {
+
+      if(left_cal_mode == 0) { // wing up
+        servo_calib_pos_left = SERVO_ANIM_POSITION_UP;
+      } else if(left_cal_mode == 1) { // wing home
+        servo_calib_pos_left = SERVO_ANIM_POSITION_HOME;
+      } else if(left_cal_mode == 2) { // wing down
+        servo_calib_pos_left = SERVO_ANIM_POSITION_DOWN;
+      }
+
+      if(right_cal_mode == 0) { // wing up
+        servo_calib_pos_right = SERVO_ANIM_POSITION_UP;
+      } else if(right_cal_mode == 1) { // wing home
+        servo_calib_pos_right = SERVO_ANIM_POSITION_HOME;
+      } else if(right_cal_mode == 2) { // wing down
+        servo_calib_pos_right = SERVO_ANIM_POSITION_DOWN;
+      }
+
+      setServoAnim(&servo_animation_alert, SERVO_ANIM_POSITION, SERVO_ANIM_ALERT);
+      setServoAnimRepeats(&servo_animation_alert, -99);
+      setServoAnimPositionLeft(&servo_animation_alert, servo_calib_pos_left);
+      setServoAnimPositionRight(&servo_animation_alert, servo_calib_pos_right);
+      startServoAnim(&servo_animation_alert);
+
+      setNeoAnim(&neo_animation_alert, NEO_ANIM_UNO, NEO_ANIM_ALERT);
+      setNeoAnimColours(&neo_animation_alert, NEO_GREEN, NEO_GREEN);
+      setNeoAnimSpeed(&neo_animation_alert, 1000);
+      setNeoAnimUno(&neo_animation_alert, left_cal_mode); // top-most leds near the back
+      setNeoAnimDuo(&neo_animation_alert, 5+right_cal_mode); // bottom-most leds near the front
+      startNeoAnim(&neo_animation_alert);
+
+      button_calib_changed = false;
+    }
+
+  } else {
+
+    updateStateMachine();
+
+  }
   
 }
 
@@ -196,6 +286,8 @@ void RobotButterfly::initStateMachine() {
 
 
 void RobotButterfly::updateStateMachine() {
+
+  if(SERVO_CAL_MODE) return;
 
   State *s = all_states[CURRENT_STATE];
   if(s == NULL) return;
@@ -283,6 +375,7 @@ void RobotButterfly::changeState(uint8_t id) {
 
 
 void RobotButterfly::incrementState() {
+  if(SERVO_CAL_MODE) return;
   PREV_STATE = CURRENT_STATE;
   CURRENT_STATE++;
   if(CURRENT_STATE >= MAX_STATES_COUNT) {
@@ -293,6 +386,7 @@ void RobotButterfly::incrementState() {
 
 
 void RobotButterfly::decrementState() {
+  if(SERVO_CAL_MODE) return;
   PREV_STATE = CURRENT_STATE;
   if(CURRENT_STATE == 0) {
     CURRENT_STATE = MAX_STATES_COUNT-1; // loop around
@@ -314,6 +408,71 @@ void RobotButterfly::printStateHeartbeat(uint8_t id) {
     s->last_state_print = millis();
   }
 
+}
+
+
+void RobotButterfly::batteryCheck() {
+
+  int battery_val = analogRead(BATT_SIG_PIN);
+  if(battery_val > 0) {
+    Serial << battery_val << " BATTERY_AA_MODE enabled" << endl;
+    BATTERY_AA_MODE = true;
+  } else {
+    Serial << battery_val << " BATTERY_AA_MODE disabled" << endl;
+    BATTERY_AA_MODE = false;
+  }
+
+  if(BATTERY_AA_MODE == true) {
+
+    initServos(SERVO_MODE_INIT_LEFT);
+    
+    // battery catch up
+    // update can be called here from setup() as the
+    // rtos scheduler has not started yet - interesting!
+    setNeoAnimColours(&neo_animation_home, NEO_ORANGE, NEO_SKY_BLUE);
+    startNeoAnim(&neo_animation_home);
+    start_del = millis();
+    while(millis()-start_del < 1200) {
+      updateNeoAnimation();
+      delay(1);
+    }
+
+    initServos(SERVO_MODE_INIT_RIGHT);
+
+    // battery catch up
+    // update can be called here from setup() as the
+    // rtos scheduler has not started yet - interesting!
+    setNeoAnimColours(&neo_animation_home, NEO_CANARY_YELLOW, NEO_GREEN);
+    startNeoAnim(&neo_animation_home);
+    start_del = millis();
+    while(millis()-start_del < 1200) {
+      updateNeoAnimation();
+      delay(1);
+    }
+
+    initialised_servos = true; // remember to set the flag when initialising motors separately
+    initServoAnimations();
+
+  } else {
+
+    initServos(SERVO_MODE_INIT_BOTH);
+    initServoAnimations();
+
+  }
+
+}
+
+
+// turn some of unused tasks to idle while
+// the robot is starting up
+void RobotButterfly::setStartupPriorities() {
+  setButtonsTaskPriority(PRIORITY_BUTTONS_MID);
+  setIMUTaskPriority(tskIDLE_PRIORITY);
+  setNeoAnimationTaskPriority(PRIORITY_NEOANIM_MID);
+  setProximityTaskPriority(tskIDLE_PRIORITY);
+  setSensorsTaskPriority(tskIDLE_PRIORITY);
+  setServoAnimationTaskPriority(PRIORITY_SERVOANIM_HIGH);
+  setSoundTaskPriority(PRIORITY_SOUND_MID);
 }
 
 // ----------------------------------

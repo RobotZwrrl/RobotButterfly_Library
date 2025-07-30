@@ -759,3 +759,22 @@ void setSensorsTaskPriority(uint8_t p) {
 
 }
 
+
+// collected every 0.1 seconds
+uint16_t getRawSensorData(struct Sensor *s) {
+  return s->raw;
+}
+
+
+// averaged over 1 second (from the raw values)
+uint16_t getAvgSensorData(struct Sensor *s) {
+  return s->val;
+}
+
+
+// averaged over 60 seconds (from the average values)
+uint16_t getAmbientSensorData(struct Sensor *s) {
+  return s->ambient;
+}
+
+

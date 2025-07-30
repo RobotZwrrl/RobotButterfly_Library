@@ -118,7 +118,11 @@ public:
     static struct State state7;
     static struct State state8;
     // --
-    
+
+    // -- startup --
+    static void batteryCheck();
+    static void setStartupPriorities();
+    // --
 
     // -- button callbacks --
     static void buttonHoldNotificationCallback(uint8_t n);
@@ -201,11 +205,30 @@ private:
 
 };
 
+// -- state machine --
 extern volatile bool new_enter;
 extern volatile bool new_update;
 extern volatile bool enter_state;
 extern volatile bool update_state;
 extern volatile bool new_print;
+// --
+
+// -- servo calibration --
+extern volatile bool SERVO_CAL_MODE;
+extern volatile bool left_cal_dir;
+extern volatile int left_cal_mode;
+extern volatile bool right_cal_dir;
+extern volatile int right_cal_mode;
+extern volatile bool button_calib_changed;
+extern volatile int servo_calib_pos_left;
+extern volatile int servo_calib_pos_right;
+// --
+
+// -- startup --
+extern volatile bool BATTERY_AA_MODE;
+extern volatile long start_del;
+extern volatile bool hold_notif_action;
+// --
 
 #endif
 
