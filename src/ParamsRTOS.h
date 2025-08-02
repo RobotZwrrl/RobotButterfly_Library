@@ -63,5 +63,13 @@
 #define PRIORITY_SOUND_HIGH       7
 #define DEBUG_SOUND_RTOS      false
 
-
+// ------ mqtt rtos -------
+#define STACK_MQTT            8000   // task stack size
+#define TASK_CORE_MQTT           1   // 0 has wdt, 1 does not have wdt
+#define TASK_FREQ_MQTT           1   // delay until (ms), each loop
+#define PRIORITY_MQTT_OFF       22
+#define PRIORITY_MQTT_LOW        2
+#define PRIORITY_MQTT_MID        4
+#define PRIORITY_MQTT_HIGH       7
+#define DEBUG_MQTT_RTOS       true
 

@@ -20,9 +20,17 @@ volatile int servo_calib_pos_right = 0;
 // --
 
 // -- startup --
-extern volatile bool BATTERY_AA_MODE = true;
-extern volatile long start_del = 0;
-extern volatile bool hold_notif_action = false;
+volatile bool BATTERY_AA_MODE = true;
+volatile long start_del = 0;
+volatile bool hold_notif_action = false;
+// --
+
+// -- eeprom prefs --
+volatile bool eeprom_mode = false;
+volatile bool command_select = false;
+volatile bool entering_value = false;
+volatile char command_key = ' ';
+Preferences preferences;
 // --
 
 
@@ -102,6 +110,7 @@ void RobotButterfly::init(bool init_servos, bool state_machine_control) {
   initIMU();
   initSensors();
   initProximity();
+  //initMQTT();
 
   setStartupPriorities();
 
@@ -245,7 +254,8 @@ void RobotButterfly::update(uint8_t update_statemachine,
                             uint8_t update_neoanim, 
                             uint8_t update_servoanim, 
                             uint8_t update_sensors, 
-                            uint8_t update_proximity) {
+                            uint8_t update_proximity,
+                            uint8_t update_mqtt) {
 
   if(update_statemachine == UPDATE_STATEMACHINE_ON) updateStateMachine();
   if(update_buttons == UPDATE_BUTTONS_ON) updateButtons();
@@ -255,8 +265,196 @@ void RobotButterfly::update(uint8_t update_statemachine,
   if(update_servoanim == UPDATE_SERVOANIM_ON) updateServoAnimation();
   if(update_sensors == UPDATE_SENSORS_ON) updateSensors();
   if(update_proximity == UPDATE_PROXIMITY_ON) updateProximity();
+  //if(update_mqtt == UPDATE_MQTT_ON) updateMQTT();
   
 }
+
+
+// ----------------------------------
+// ------------ settings -----------
+// ----------------------------------
+
+bool RobotButterfly::processConsole(String str) {
+
+  if(str == "+++") {
+    eeprom_mode = !eeprom_mode;
+    manageSettings(str);
+    return false;
+  }
+
+  if(eeprom_mode) {
+    manageSettings(str);
+    return false;
+  }
+
+  return true;
+}
+
+
+void RobotButterfly::manageSettings(String str) {
+
+  if(eeprom_mode == true) {
+
+    if(command_select == false && entering_value == false) {
+      Serial << "::::: eeprom mode entered :::::" << endl;
+      displaySettingsMenu();
+      command_select = true;
+      entering_value = false;
+    }
+    
+    eepromMachine(str);
+
+  } else if(str == "+++" && eeprom_mode == false) {
+    Serial << "::::: eeprom mode exited :::::" << endl;
+    command_select = false;
+    entering_value = false;
+  }
+
+}
+
+
+void RobotButterfly::eepromMachine(String str) {
+
+  bool good_key = false;
+
+  if(command_select == true && entering_value == false) {
+
+    command_key = str[0];
+    String mem = "";
+    preferences.begin("app", true);
+
+    switch(command_key) {
+      case 'a': {
+        mem = preferences.getString(SETTINGS_WIFI_SSID);
+        Serial << "[a] wifi ssid (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'b': {
+        mem = preferences.getString(SETTINGS_WIFI_PASS);
+        Serial << "[b] wifi pass (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'c': {
+        mem = preferences.getString(SETTINGS_MQTT_SERVER);
+        Serial << "[c] mqtt server (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'd': {
+        mem = preferences.getString(SETTINGS_MQTT_PORT);
+        Serial << "[d] mqtt port (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'e': {
+        mem = preferences.getString(SETTINGS_MQTT_USER);
+        Serial << "[e] mqtt user (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'f': {
+        mem = preferences.getString(SETTINGS_MQTT_PASS);
+        Serial << "[f] mqtt pass (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'g': {
+        mem = preferences.getString(SETTINGS_MQTT_NAME);
+        Serial << "[g] mqtt name (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+    }
+
+    preferences.end();
+
+    if(good_key) {
+      command_select = false;
+      entering_value = true;
+    }
+
+  } else if(command_select == false && entering_value == true) {
+
+    preferences.begin("app", false);
+
+    switch(command_key) {
+      case 'a': {
+        preferences.putString(SETTINGS_WIFI_SSID, str);
+        Serial << "set the wifi ssid to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'b': {
+        preferences.putString(SETTINGS_WIFI_PASS, str);
+        Serial << "set the wifi pass to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'c': {
+        preferences.putString(SETTINGS_MQTT_SERVER, str);
+        Serial << "set the mqtt server to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'd': {
+        preferences.putString(SETTINGS_MQTT_PORT, str);
+        Serial << "set the mqtt port to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'e': {
+        preferences.putString(SETTINGS_MQTT_USER, str);
+        Serial << "set the mqtt user to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'f': {
+        preferences.putString(SETTINGS_MQTT_PASS, str);
+        Serial << "set the mqtt pass to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'g': {
+        preferences.putString(SETTINGS_MQTT_NAME, str);
+        Serial << "set the mqtt name to: " << str << endl;
+        good_key = true;
+      }
+      break;
+    }
+
+    preferences.end();
+
+    if(good_key) {
+      Serial << "::::: memory updated :::::" << endl;
+      command_select = true;
+      entering_value = false;
+      displaySettingsMenu();
+    }
+
+  }
+
+}
+
+
+void RobotButterfly::displaySettingsMenu() {
+  Serial << endl;
+  Serial << "press the letter and hit enter. afterwards you will be prompted to enter the value" << endl;
+  Serial << "[a] wifi ssid" << endl;
+  Serial << "[b] wifi pass" << endl;
+  Serial << "[c] mqtt server" << endl;
+  Serial << "[d] mqtt port" << endl;
+  Serial << "[e] mqtt user" << endl;
+  Serial << "[f] mqtt pass" << endl;
+  Serial << "[g] mqtt name" << endl;
+  Serial << "[+++] exit" << endl;
+  Serial << endl;
+}
+
+
+// ----------------------------------
+// ----------------------------------
 
 
 // ----------------------------------
@@ -473,6 +671,7 @@ void RobotButterfly::setStartupPriorities() {
   setSensorsTaskPriority(tskIDLE_PRIORITY);
   setServoAnimationTaskPriority(PRIORITY_SERVOANIM_HIGH);
   setSoundTaskPriority(PRIORITY_SOUND_MID);
+  //setMQTTTaskPriority(PRIORITY_MQTT_OFF);
 }
 
 // ----------------------------------

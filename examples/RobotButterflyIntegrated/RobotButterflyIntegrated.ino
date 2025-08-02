@@ -58,34 +58,37 @@ void loop() {
 void console() {
 
   if(Serial.available()) {
-    char c = Serial.read();
-    switch(c) {
-      case '1':
-        robotbutterfly.changeState(RobotButterfly::STATE1);
-      break;
-      case '2':
-        robotbutterfly.changeState(RobotButterfly::STATE2);
-      break;
-      case '3':
-        robotbutterfly.changeState(RobotButterfly::STATE3);
-      break;
-      case '4':
-        robotbutterfly.changeState(RobotButterfly::STATE4);
-      break;
+    String str = Serial.readStringUntil('\n');
+    if( robotbutterfly.processConsole(str) ) {
+      char c = str[0];
+      switch(c) {
+        case '1':
+          robotbutterfly.changeState(RobotButterfly::STATE1);
+        break;
+        case '2':
+          robotbutterfly.changeState(RobotButterfly::STATE2);
+        break;
+        case '3':
+          robotbutterfly.changeState(RobotButterfly::STATE3);
+        break;
+        case '4':
+          robotbutterfly.changeState(RobotButterfly::STATE4);
+        break;
 
-      case 'a':
-        robotbutterfly.decrementState();
-      break;
-      case 'd':
-        robotbutterfly.incrementState();
-      break;
+        case 'a':
+          robotbutterfly.decrementState();
+        break;
+        case 'd':
+          robotbutterfly.incrementState();
+        break;
 
-      case 'h':
-        Serial << "1-4: states" << endl;
-        Serial << "a: r button" << endl;
-        Serial << "d: l button" << endl;
-        Serial << "h: help" << endl;
-      break;
+        case 'h':
+          Serial << "1-4: states" << endl;
+          Serial << "a: r button" << endl;
+          Serial << "d: l button" << endl;
+          Serial << "h: help" << endl;
+        break;
+      }
     }
   }
 

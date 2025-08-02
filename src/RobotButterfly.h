@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "Params.h"
 #include "ParamsRTOS.h"
+#include <Preferences.h>
 
 // board:
 // esp32 dev module
@@ -14,13 +15,14 @@
 // library dependencies:
 // Streaming - v5.0.0 https://github.com/janelia-arduino/Streaming
 // movingAvg - v2.3.2 https://github.com/JChristensen/movingAvg
-// MPU6050 - v1.4.3 https://github.com/ElectronicCats/mpu6050
+// MPU6050 - v1.4.4 https://github.com/ElectronicCats/mpu6050
 // Adafruit Neopixel - v.1.12.4 https://github.com/adafruit/Adafruit_NeoPixel
 // ESP32Servo - v3.0.6 https://github.com/madhephaestus/ESP32Servo 
 // ServoEasing - v3.4.0 https://github.com/ArminJo/ServoEasing
 // DHT - v1.4.6 https://github.com/adafruit/DHT-sensor-library
 // Adafruit Unified Sensor - v1.1.15 https://github.com/adafruit/Adafruit_Sensor 
 // HC-SR04 - v1.1.3 https://github.com/d03n3rfr1tz3/HC-SR04 
+// MQTT - v2.5.2 https://github.com/256dpi/arduino-mqtt
 
 #include "modules/Buttons/Buttons.h"
 #include "modules/Sound/Sound.h"
@@ -29,6 +31,7 @@
 #include "modules/ServoAnimation/ServoAnimation.h"
 #include "modules/Sensors/Sensors.h"
 #include "modules/Proximity/Proximity.h"
+//#include "modules/DeviceMQTT/DeviceMQTT.h"
 
 
 // -- updates --
@@ -48,7 +51,9 @@ enum UpdateOptions {
     UPDATE_SENSORS_ON,
     UPDATE_SENSORS_OFF,
     UPDATE_PROXIMITY_ON,
-    UPDATE_PROXIMITY_OFF
+    UPDATE_PROXIMITY_OFF,
+    UPDATE_MQTT_ON,
+    UPDATE_MQTT_OFF
 };
 // --
 
@@ -65,7 +70,8 @@ public:
                 uint8_t update_neoanim, 
                 uint8_t update_servoanim, 
                 uint8_t update_sensors, 
-                uint8_t update_proximity);
+                uint8_t update_proximity,
+                uint8_t update_mqtt);
 
     // -- state machine --
     typedef void (*StateSetup)();
@@ -122,6 +128,13 @@ public:
     // -- startup --
     static void batteryCheck();
     static void setStartupPriorities();
+    // --
+
+    // -- eeprom prefs --
+    static bool processConsole(String str);
+    static void manageSettings(String str);
+    static void eepromMachine(String str);
+    static void displaySettingsMenu();
     // --
 
     // -- button callbacks --
@@ -228,6 +241,14 @@ extern volatile int servo_calib_pos_right;
 extern volatile bool BATTERY_AA_MODE;
 extern volatile long start_del;
 extern volatile bool hold_notif_action;
+// --
+
+// -- eeprom prefs --
+extern volatile bool eeprom_mode;
+extern volatile bool command_select;
+extern volatile bool entering_value;
+extern volatile char command_key;
+extern Preferences preferences;
 // --
 
 #endif

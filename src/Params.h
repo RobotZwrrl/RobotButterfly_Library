@@ -171,3 +171,16 @@
 #define STATE_LOOP_PRINT         2000   // how long to print this every iteration of the state loop (in ms)
 
 // ----------------------------
+
+// --------- settings ---------
+
+#define DEBUG_SETTINGS         true
+#define SETTINGS_WIFI_SSID     "wifi_ssid"
+#define SETTINGS_WIFI_PASS     "wifi_pass"
+#define SETTINGS_MQTT_SERVER   "mqtt_server"
+#define SETTINGS_MQTT_PORT     "mqtt_port"
+#define SETTINGS_MQTT_USER     "mqtt_user"
+#define SETTINGS_MQTT_PASS     "mqtt_pass"
+#define SETTINGS_MQTT_NAME     "mqtt_name"
+
+// ----------------------------
