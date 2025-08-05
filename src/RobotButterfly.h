@@ -9,8 +9,8 @@
 #include <Preferences.h>
 
 // board:
-// esp32 dev module
-// esp32 v2.0.4
+// ESP32 dev module
+// ESP32 board support package: v2.0.4
 
 // library dependencies:
 // Streaming - v5.0.0 https://github.com/janelia-arduino/Streaming

@@ -15,6 +15,7 @@ String mqtt_server = "";
 String mqtt_port = "";
 String mqtt_user = "";
 String mqtt_pass = "";
+String mqtt_id = "";
 
 
 void setup() {
@@ -67,26 +68,28 @@ void console() {
 
 void readPreferences() {
   preferences.begin("app", true);
-  Serial << "robot name: " << preferences.getString(SETTINGS_MQTT_NAME) << endl;
+  Serial << "robot name: " << preferences.getString(SETTINGS_ROBOT_NAME) << endl;
   Serial << "wifi ssid: " << preferences.getString(SETTINGS_WIFI_SSID) << endl;
   Serial << "wifi pass: " << preferences.getString(SETTINGS_WIFI_PASS) << endl;
   Serial << "mqtt server: " << preferences.getString(SETTINGS_MQTT_SERVER) << endl;
   Serial << "mqtt port: " << preferences.getString(SETTINGS_MQTT_PORT) << endl;
   Serial << "mqtt user: " << preferences.getString(SETTINGS_MQTT_USER) << endl;
   Serial << "mqtt pass: " << preferences.getString(SETTINGS_MQTT_PASS) << endl;
+  Serial << "mqtt id: " << preferences.getString(SETTINGS_MQTT_ID) << endl;
   preferences.end();
 }
 
 
 void writePreferences() {
   preferences.begin("app", false);
-  preferences.putString(SETTINGS_MQTT_NAME, robot_name);
+  preferences.putString(SETTINGS_ROBOT_NAME, robot_name);
   preferences.putString(SETTINGS_WIFI_SSID, wifi_ssid);
   preferences.putString(SETTINGS_WIFI_PASS, wifi_pass);
   preferences.putString(SETTINGS_MQTT_SERVER, mqtt_server);
   preferences.putString(SETTINGS_MQTT_PORT, mqtt_port);
   preferences.putString(SETTINGS_MQTT_USER, mqtt_user);
   preferences.putString(SETTINGS_MQTT_PASS, mqtt_pass);
+  preferences.putString(SETTINGS_MQTT_ID, mqtt_id);
   preferences.end();
 }
 

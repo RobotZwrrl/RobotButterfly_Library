@@ -173,8 +173,8 @@ void updateIMU() {
     // check what orientation it is in
     bool o = checkOrientationIMU();
 
-    // check if there's a new position only in the 
-    // tabletop orientation. pose check implements
+    // check if there's a new position as long as it's
+    // not in hanging orientation. pose check implements
     // a lockout time inside of the function, and the
     // returned bool reflects that.
     bool p = false;
@@ -372,9 +372,6 @@ bool checkPositionIMU() {
 
   bool pose_detected = false;
 
-  if(IMU_POSE_PREV != IMU_POSE) {
-    if(onPoseChangeCallback) onPoseChangeCallback(IMU_POSE);
-  }
   IMU_POSE_PREV = IMU_POSE;
 
   // left / right tilt
@@ -420,10 +417,28 @@ bool checkPositionIMU() {
 
   if(!pose_detected) {
     if(millis()-last_pose_detected <= IMU_POSE_LOCKOUT) {
-      return true; // force true as it is still in lockout period
+      pose_detected = true; // force true as it is still in lockout period
     } else {
-      IMU_POSE = IMU_Pose_NA;
+
+      // detecting home position
+      if(abs(imu_delta_home_avg.ax) <= 100) {
+        if(abs(imu_delta_home_avg.ay) <= 100) {
+          if(abs(imu_delta_home_avg.az) <= 100) {
+            if(DEBUG_IMU) Serial << "home position" << endl;
+            IMU_POSE = IMU_Pose_Home;
+            pose_detected = true;
+          }
+        }
+      } else {
+        if(DEBUG_IMU) Serial << "n/a position" << endl;
+        IMU_POSE = IMU_Pose_NA;
+      }
+
     }
+  }
+
+  if(IMU_POSE_PREV != IMU_POSE) {
+    if(onPoseChangeCallback) onPoseChangeCallback(IMU_POSE);
   }
 
   return pose_detected;

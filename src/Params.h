@@ -181,6 +181,7 @@
 #define SETTINGS_MQTT_PORT     "mqtt_port"
 #define SETTINGS_MQTT_USER     "mqtt_user"
 #define SETTINGS_MQTT_PASS     "mqtt_pass"
-#define SETTINGS_MQTT_NAME     "mqtt_name"
+#define SETTINGS_MQTT_ID       "mqtt_name"
+#define SETTINGS_ROBOT_NAME    "robot_name"
 
 // ----------------------------

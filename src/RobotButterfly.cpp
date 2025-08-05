@@ -361,8 +361,14 @@ void RobotButterfly::eepromMachine(String str) {
       }
       break;
       case 'g': {
-        mem = preferences.getString(SETTINGS_MQTT_NAME);
-        Serial << "[g] mqtt name (" << mem << ")" << endl;
+        mem = preferences.getString(SETTINGS_MQTT_ID);
+        Serial << "[g] mqtt id (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'j': {
+        mem = preferences.getString(SETTINGS_ROBOT_NAME);
+        Serial << "[j] robot name (" << mem << ")" << endl;
         good_key = true;
       }
       break;
@@ -417,8 +423,14 @@ void RobotButterfly::eepromMachine(String str) {
       }
       break;
       case 'g': {
-        preferences.putString(SETTINGS_MQTT_NAME, str);
-        Serial << "set the mqtt name to: " << str << endl;
+        preferences.putString(SETTINGS_MQTT_ID, str);
+        Serial << "set the mqtt id to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'j': {
+        preferences.putString(SETTINGS_ROBOT_NAME, str);
+        Serial << "set the robot name to: " << str << endl;
         good_key = true;
       }
       break;
@@ -447,7 +459,8 @@ void RobotButterfly::displaySettingsMenu() {
   Serial << "[d] mqtt port" << endl;
   Serial << "[e] mqtt user" << endl;
   Serial << "[f] mqtt pass" << endl;
-  Serial << "[g] mqtt name" << endl;
+  Serial << "[g] mqtt id" << endl;
+  Serial << "[j] robot name" << endl;
   Serial << "[+++] exit" << endl;
   Serial << endl;
 }
