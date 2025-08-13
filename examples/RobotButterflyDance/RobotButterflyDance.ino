@@ -24,7 +24,6 @@ void setup() {
   pinMode(LED_HEARTBEAT_PIN, OUTPUT);
   pinMode(LED_COMMS_PIN, OUTPUT);
 
-  setAnimations();
   setTaskPriorities();
 
   Serial << "Welcome to Robot Butterfly!" << endl;
@@ -56,31 +55,6 @@ void loop() {
 
     }
   }
-
-}
-
-
-void setAnimations() {
-
-  // servo animation home
-  setServoAnim(&servo_animation_home, SERVO_ANIM_POSITION, SERVO_ANIM_HOME);
-  setServoAnimPositionLeft(&servo_animation_home, SERVO_ANIM_POSITION_UP);
-  setServoAnimPositionRight(&servo_animation_home, SERVO_ANIM_POSITION_UP);
-  startServoAnim(&servo_animation_home);
-
-  // servo animation alert
-  setServoAnim(&servo_animation_alert, SERVO_ANIM_NONE, SERVO_ANIM_ALERT);
-  startServoAnim(&servo_animation_alert);
-
-  // neo animation home
-  setNeoAnim(&neo_animation_home, NEO_ANIM_SQUIGGLE, NEO_ANIM_HOME);
-  setNeoAnimColours(&neo_animation_home, NEO_GREEN, NEO_PURPLE);
-  setNeoAnimDuration(&neo_animation_home, 500);
-  startNeoAnim(&neo_animation_home);
-
-  // neo animation alert
-  setNeoAnim(&neo_animation_alert, NEO_ANIM_NONE, NEO_ANIM_ALERT);
-  startNeoAnim(&neo_animation_alert);
 
 }
 

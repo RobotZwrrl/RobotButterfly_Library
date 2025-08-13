@@ -1,6 +1,13 @@
 #include "RobotButterfly.h"
 
+// -- mqtt --
+volatile bool MQTT_MODE_ACTIVE = false;
+volatile bool did_autoconnect = false;
+volatile bool iot_publish_timer_flag = false;
+// --
+
 // -- state machine --
+volatile uint8_t MAX_STATE = 4;
 volatile bool new_enter = false;
 volatile bool new_update = false;
 volatile bool enter_state = false;
@@ -71,6 +78,11 @@ RobotButterfly::RobotButterfly() {
 // not be desired
 void RobotButterfly::init(bool init_servos, bool state_machine_control) {
   
+  WiFi.mode(WIFI_OFF);
+  btStop();
+  setCpuFrequencyMhz(80);
+  MQTT_MODE_ACTIVE = false;
+
   initSound();
   initNeopixels();
   initNeoAnimations();
@@ -110,12 +122,24 @@ void RobotButterfly::init(bool init_servos, bool state_machine_control) {
   initIMU();
   initSensors();
   initProximity();
-  //initMQTT();
-
+  
   setStartupPriorities();
+  setAnimations();
 
   CHANGE_STATES_CONTROL = state_machine_control;
   MAX_STATES_COUNT = 0;
+
+  // -- mqtt callbacks --
+  onIOTMessageReceivedCallback = iotMessageReceivedCallback;
+  onIOTMessagePublishedCallback = iotMessagePublishedCallback;
+  onIOTConnectedCallback = iotConnectedCallback;
+  onIOTDisconnectedCallback = iotDisconnectedCallback;
+
+  onIOTMessageReceivedCallback_client = NULL;
+  onIOTMessagePublishedCallback_client = NULL;
+  onIOTConnectedCallback_client = NULL;
+  onIOTDisconnectedCallback_client = NULL;
+  // --
 
   // -- button callbacks --
   onHoldNotificationCallback = buttonHoldNotificationCallback;
@@ -240,6 +264,19 @@ void RobotButterfly::update() {
 
     updateStateMachine();
 
+    if(millis() >= 5000 && did_autoconnect == false) {
+      if( getPreference(SETTINGS_IOT_AUTOCONNECT) == "1" ) {
+        enableMQTT();
+        did_autoconnect = true;
+      }
+    }
+
+    // set by imu's timer
+    if(iot_publish_timer_flag) {
+      publishMQTT();
+      iot_publish_timer_flag = false;
+    }
+
   }
   
 }
@@ -265,13 +302,79 @@ void RobotButterfly::update(uint8_t update_statemachine,
   if(update_servoanim == UPDATE_SERVOANIM_ON) updateServoAnimation();
   if(update_sensors == UPDATE_SENSORS_ON) updateSensors();
   if(update_proximity == UPDATE_PROXIMITY_ON) updateProximity();
-  //if(update_mqtt == UPDATE_MQTT_ON) updateMQTT();
+  if(update_mqtt == UPDATE_MQTT_ON && MQTT_MODE_ACTIVE == true) updateMQTT();
   
 }
 
 
+void RobotButterfly::setAnimations() {
+
+  // servo animation home
+  setServoAnim(&servo_animation_home, SERVO_ANIM_POSITION, SERVO_ANIM_HOME);
+  setServoAnimPositionLeft(&servo_animation_home, SERVO_ANIM_POSITION_UP);
+  setServoAnimPositionRight(&servo_animation_home, SERVO_ANIM_POSITION_UP);
+  startServoAnim(&servo_animation_home);
+
+  // servo animation alert
+  setServoAnim(&servo_animation_alert, SERVO_ANIM_NONE, SERVO_ANIM_ALERT);
+  startServoAnim(&servo_animation_alert);
+
+  // neo animation home
+  setNeoAnim(&neo_animation_home, NEO_ANIM_SQUIGGLE, NEO_ANIM_HOME);
+  setNeoAnimColours(&neo_animation_home, NEO_GREEN, NEO_PURPLE);
+  setNeoAnimDuration(&neo_animation_home, 500);
+  startNeoAnim(&neo_animation_home);
+
+  // neo animation alert
+  setNeoAnim(&neo_animation_alert, NEO_ANIM_NONE, NEO_ANIM_ALERT);
+  startNeoAnim(&neo_animation_alert);
+
+}
+
+
 // ----------------------------------
-// ------------ settings -----------
+// ------------- mqtt ---------------
+// ----------------------------------
+
+void RobotButterfly::enableMQTT() {
+  MQTT_MODE_ACTIVE = true;
+  setIMUTaskPriority(PRIORITY_IMU_LOW); // mqtt task needs the imu timer to set a flag
+  initMQTT();
+}
+
+
+void RobotButterfly::disableMQTT() {
+  MQTT_MODE_ACTIVE = false; 
+  setMQTTTaskPriority(PRIORITY_MQTT_OFF);
+}
+
+
+void RobotButterfly::sendMQTTMessage(String topic, String payload) {
+  publishMQTTMessage(topic, payload);
+}
+
+void RobotButterfly::conductNamespace(String action) {
+  publishMQTTMessage( (device_mqtt.robot_namespace+"/control"), action);
+}
+
+void RobotButterfly::conductSet(String action) {
+  publishMQTTMessage( (device_mqtt.robot_namespace+"/"+device_mqtt.robot_set+"/control"), action);
+}
+
+void RobotButterfly::conductTeam(String action) {
+  publishMQTTMessage( (device_mqtt.robot_namespace+"/"+device_mqtt.robot_set+"/"+device_mqtt.robot_team+"/control"), action);
+}
+
+void RobotButterfly::conductorSubscribe() {
+  conductorSubscribeMQTT();
+}
+
+// ----------------------------------
+// ----------------------------------
+
+
+// ----------------------------------
+// ------------ settings ------------
 // ----------------------------------
 
 bool RobotButterfly::processConsole(String str) {
@@ -366,9 +469,33 @@ void RobotButterfly::eepromMachine(String str) {
         good_key = true;
       }
       break;
-      case 'j': {
+      case 'i': {
         mem = preferences.getString(SETTINGS_ROBOT_NAME);
-        Serial << "[j] robot name (" << mem << ")" << endl;
+        Serial << "[i] robot name (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'j': {
+        mem = preferences.getString(SETTINGS_NAMESPACE);
+        Serial << "[j] robot namespace (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'k': {
+        mem = preferences.getString(SETTINGS_SET);
+        Serial << "[k] robot set (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case 'l': {
+        mem = preferences.getString(SETTINGS_TEAM);
+        Serial << "[l] robot team (" << mem << ")" << endl;
+        good_key = true;
+      }
+      break;
+      case ';': {
+        mem = preferences.getString(SETTINGS_IOT_AUTOCONNECT);
+        Serial << "[;] iot autoconnect (enter a 1 or 0) (" << mem << ")" << endl;
         good_key = true;
       }
       break;
@@ -428,9 +555,33 @@ void RobotButterfly::eepromMachine(String str) {
         good_key = true;
       }
       break;
-      case 'j': {
+      case 'i': {
         preferences.putString(SETTINGS_ROBOT_NAME, str);
         Serial << "set the robot name to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'j': {
+        preferences.putString(SETTINGS_NAMESPACE, str);
+        Serial << "set the robot namespace to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'k': {
+        preferences.putString(SETTINGS_SET, str);
+        Serial << "set the robot set to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case 'l': {
+        preferences.putString(SETTINGS_TEAM, str);
+        Serial << "set the robot team to: " << str << endl;
+        good_key = true;
+      }
+      break;
+      case ';': {
+        preferences.putString(SETTINGS_IOT_AUTOCONNECT, str);
+        Serial << "set the iot autoconnect to: " << str << endl;
         good_key = true;
       }
       break;
@@ -460,11 +611,22 @@ void RobotButterfly::displaySettingsMenu() {
   Serial << "[e] mqtt user" << endl;
   Serial << "[f] mqtt pass" << endl;
   Serial << "[g] mqtt id" << endl;
-  Serial << "[j] robot name" << endl;
+  Serial << "[i] robot name" << endl;
+  Serial << "[j] robot namespace" << endl;
+  Serial << "[k] robot set" << endl;
+  Serial << "[l] robot team" << endl;
+  Serial << "[;] iot autoconnect" << endl;
   Serial << "[+++] exit" << endl;
   Serial << endl;
 }
 
+
+String RobotButterfly::getPreference(String key) {
+  preferences.begin("app", true);
+  String s = preferences.getString(key.c_str());
+  preferences.end();
+  return s;
+}
 
 // ----------------------------------
 // ----------------------------------
@@ -564,6 +726,12 @@ void RobotButterfly::transitionState() {
 
   s->last_state_change = millis();
   if(DEBUG_STATEMACHINE) Serial << "entering state index: " << CURRENT_STATE << " from index: " << PREV_STATE << endl;
+}
+
+
+void RobotButterfly::setNumStates(uint8_t n) {
+  if(n > 8) n = 8;
+  MAX_STATE = n; // apologies for the confusing naming
 }
 
 
@@ -684,7 +852,6 @@ void RobotButterfly::setStartupPriorities() {
   setSensorsTaskPriority(tskIDLE_PRIORITY);
   setServoAnimationTaskPriority(PRIORITY_SERVOANIM_HIGH);
   setSoundTaskPriority(PRIORITY_SOUND_MID);
-  //setMQTTTaskPriority(PRIORITY_MQTT_OFF);
 }
 
 // ----------------------------------

@@ -33,6 +33,7 @@ void setup() {
   robotbutterfly.init(true, true);
 
   // there are 4 routines in this sketch
+  robotbutterfly.setNumStates(4);
   robotbutterfly.addState(RobotButterfly::STATE1, setupState1, loopState1);  // state 1: low power periodic flutter
   robotbutterfly.addState(RobotButterfly::STATE2, setupState2, loopState2);  // state 2: colourful fluttering
   robotbutterfly.addState(RobotButterfly::STATE3, setupState3, loopState3);  // state 3: rainbow sparkle flutter

@@ -7,6 +7,7 @@
 #include "Params.h"
 #include "ParamsRTOS.h"
 #include <Preferences.h>
+#include <WiFi.h>
 
 // board:
 // ESP32 dev module
@@ -23,6 +24,7 @@
 // Adafruit Unified Sensor - v1.1.15 https://github.com/adafruit/Adafruit_Sensor 
 // HC-SR04 - v1.1.3 https://github.com/d03n3rfr1tz3/HC-SR04 
 // MQTT - v2.5.2 https://github.com/256dpi/arduino-mqtt
+// ArduinoJson - v7.4.2 https://github.com/bblanchon/ArduinoJson
 
 #include "modules/Buttons/Buttons.h"
 #include "modules/Sound/Sound.h"
@@ -31,7 +33,7 @@
 #include "modules/ServoAnimation/ServoAnimation.h"
 #include "modules/Sensors/Sensors.h"
 #include "modules/Proximity/Proximity.h"
-//#include "modules/DeviceMQTT/DeviceMQTT.h"
+#include "modules/DeviceMQTT/DeviceMQTT.h"
 
 
 // -- updates --
@@ -72,11 +74,24 @@ public:
                 uint8_t update_sensors, 
                 uint8_t update_proximity,
                 uint8_t update_mqtt);
+    static void setAnimations();
+
+    // -- mqtt --
+    static void enableMQTT();
+    static void disableMQTT();
+
+    static void sendMQTTMessage(String topic, String payload);
+    static void conductNamespace(String action);
+    static void conductSet(String action);
+    static void conductTeam(String action);
+    static void conductorSubscribe();
+    // --
 
     // -- state machine --
     typedef void (*StateSetup)();
     typedef void (*StateLoop)();
     
+    static void setNumStates(uint8_t n);
     static void addState(uint8_t id, StateSetup setup_fn, StateLoop loop_fn);
     static void changeState(uint8_t n);
     static void incrementState();
@@ -135,6 +150,19 @@ public:
     static void manageSettings(String str);
     static void eepromMachine(String str);
     static void displaySettingsMenu();
+    static String getPreference(String key);
+    // --
+
+    // -- mqtt callbacks --
+    static void iotMessageReceivedCallback(String topic, String payload);    
+    static void iotMessagePublishedCallback(String topic, String payload);
+    static void iotConnectedCallback();
+    static void iotDisconnectedCallback();
+
+    static IOTMessageCallback onIOTMessageReceivedCallback_client;
+    static IOTMessageCallback onIOTMessagePublishedCallback_client;
+    static IOTCallback onIOTConnectedCallback_client;
+    static IOTCallback onIOTDisconnectedCallback_client;
     // --
 
     // -- button callbacks --
@@ -218,7 +246,14 @@ private:
 
 };
 
+// -- mqtt --
+extern volatile bool MQTT_MODE_ACTIVE;
+extern volatile bool did_autoconnect;
+extern volatile bool iot_publish_timer_flag;
+// --
+
 // -- state machine --
+extern volatile uint8_t MAX_STATE;
 extern volatile bool new_enter;
 extern volatile bool new_update;
 extern volatile bool enter_state;

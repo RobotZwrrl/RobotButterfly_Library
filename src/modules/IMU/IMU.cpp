@@ -25,6 +25,13 @@ void imuUpdateAvgValues();
 // ------------- imu isr --------------
 void IRAM_ATTR Timer_10Hz_imu_ISR() { // every 0.1 seconds
   new_avg_sample = true;
+
+  if(iot_timer_counter < IOT_TIMER_COUNTER_MAX-1) {
+    iot_timer_counter++;
+  } else {
+    iot_timer_counter = 0;
+    iot_publish_timer_flag = true;
+  }
 }
 // ------------------------------------
 

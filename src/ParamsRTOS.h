@@ -71,5 +71,5 @@
 #define PRIORITY_MQTT_LOW        2
 #define PRIORITY_MQTT_MID        4
 #define PRIORITY_MQTT_HIGH       7
-#define DEBUG_MQTT_RTOS       true
+#define DEBUG_MQTT_RTOS       false
 

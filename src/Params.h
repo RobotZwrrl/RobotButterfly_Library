@@ -155,9 +155,8 @@
 
 // ------ state machine -------
 
-#define DEBUG_STATEMACHINE       true
-#define MAX_STATE                4
-#define NUM_STATES 8
+#define DEBUG_STATEMACHINE       false
+#define NUM_STATES                   8
 
 //#define TRANSITION_FRAME_TIME    100000    // 10 seconds
 //#define TRANSITION_FRAME_TIME    50000     // 5 seconds
@@ -174,7 +173,7 @@
 
 // --------- settings ---------
 
-#define DEBUG_SETTINGS         true
+#define DEBUG_SETTINGS         false
 #define SETTINGS_WIFI_SSID     "wifi_ssid"
 #define SETTINGS_WIFI_PASS     "wifi_pass"
 #define SETTINGS_MQTT_SERVER   "mqtt_server"
@@ -183,5 +182,15 @@
 #define SETTINGS_MQTT_PASS     "mqtt_pass"
 #define SETTINGS_MQTT_ID       "mqtt_name"
 #define SETTINGS_ROBOT_NAME    "robot_name"
+#define SETTINGS_NAMESPACE     "robotinthepark"
+#define SETTINGS_SET           "set-new"
+#define SETTINGS_TEAM          "team-classic"
+#define SETTINGS_IOT_AUTOCONNECT   "iot_autoconnect"
 
 // ----------------------------
+
+// ----------- mqtt -----------
+#define DEBUG_MQTT        false
+#define IOT_TIMER_COUNTER_MAX     5 // this means: 5 * 100 ms = 500 ms, publish sensor data every 0.5 s
+// ----------------------------
+

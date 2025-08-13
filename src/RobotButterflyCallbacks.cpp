@@ -1,6 +1,29 @@
 #include "RobotButterfly.h"
 
 // ----------------------------------
+// --------- mqtt callbacks -------
+// ----------------------------------
+
+void RobotButterfly::iotMessageReceivedCallback(String topic, String payload) {
+	if(onIOTMessageReceivedCallback_client != NULL) onIOTMessageReceivedCallback_client(topic, payload);	
+}
+
+void RobotButterfly::iotMessagePublishedCallback(String topic, String payload) {
+	if(onIOTMessagePublishedCallback_client != NULL) onIOTMessagePublishedCallback_client(topic, payload);	
+}
+
+void RobotButterfly::iotConnectedCallback() {
+	if(onIOTConnectedCallback_client != NULL) onIOTConnectedCallback_client();	
+}
+
+void RobotButterfly::iotDisconnectedCallback() {
+	if(onIOTDisconnectedCallback_client != NULL) onIOTDisconnectedCallback_client();	
+}
+
+// ----------------------------------
+
+
+// ----------------------------------
 // --------- button callbacks -------
 // ----------------------------------
 
