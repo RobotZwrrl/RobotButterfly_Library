@@ -10,7 +10,7 @@
 #define DEBUG_BUTTONS_RTOS      false
 
 // ------ imu rtos -------
-#define STACK_IMU            1800   // task stack size
+#define STACK_IMU            3500   // task stack size
 #define TASK_CORE_IMU           1   // 0 has wdt, 1 does not have wdt
 #define TASK_FREQ_IMU           5   // delay until (ms), each loop
 #define PRIORITY_IMU_LOW        2
