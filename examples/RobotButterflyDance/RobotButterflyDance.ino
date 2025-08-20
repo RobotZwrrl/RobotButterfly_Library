@@ -10,7 +10,9 @@
 RobotButterfly robotbutterfly;
 
 void imuPoseChangeCallback(uint8_t p);
+
 long last_movement_rest = 0;
+long last_pose_movement = 0;
 
 
 void setup() {
@@ -35,17 +37,19 @@ void loop() {
   
   robotbutterfly.update();
 
+  updateMovement();
+
   if(getIMUState() != IMU_ACTIVE) {
     digitalWrite(LED_HEARTBEAT_PIN, LOW);
-    digitalWrite(LED_COMMS_PIN, LOW);
   } else {
     digitalWrite(LED_HEARTBEAT_PIN, HIGH);
-    digitalWrite(LED_COMMS_PIN, HIGH);
   }
 
   if(getIMUPose() == IMU_Pose_Home && getIMUState() == IMU_ACTIVE) {
     
-    if(millis()-last_movement_rest >= 20000 && millis() > 10000) {
+    if(millis()-last_movement_rest >= 20000 && 
+       millis() > 10000 &&
+       millis()-last_pose_movement >= 5000) {
       
       setServoAnim(&servo_animation_alert, SERVO_ANIM_FLUTTER, SERVO_ANIM_ALERT);
       setServoAnimFlutterWings(&servo_animation_alert, SERVO_ANIM_FLUTTER_WINGS_BOTH_UP);
