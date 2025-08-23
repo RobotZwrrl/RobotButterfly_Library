@@ -51,6 +51,7 @@ extern struct DeviceMQTT device_mqtt;
 void connect();
 void defaultSubscribeMQTT();
 void conductorSubscribeMQTT();
+void subscribeMQTT(String topic);
 void defaultPublishMQTT();
 void publishMQTT();
 void messageReceivedMQTT(String &topic, String &payload);

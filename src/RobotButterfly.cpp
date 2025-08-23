@@ -369,6 +369,10 @@ void RobotButterfly::conductorSubscribe() {
   conductorSubscribeMQTT();
 }
 
+void RobotButterfly::mqttSubscribe(String topic) {
+  subscribeMQTT(topic);
+}
+
 // ----------------------------------
 // ----------------------------------
 

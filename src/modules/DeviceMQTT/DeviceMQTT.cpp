@@ -125,6 +125,12 @@ void conductorSubscribeMQTT() {
 }
 
 
+void subscribeMQTT(String topic) {
+  if(DEBUG_MQTT) Serial << "subscribing: " << topic << endl;
+  mqtt.subscribe( topic );
+}
+
+
 void defaultPublishMQTT() {
   mqtt.publish( (device_mqtt.mqtt_id+"/namespace"), device_mqtt.robot_namespace);
   mqtt.publish( (device_mqtt.mqtt_id+"/set"), device_mqtt.robot_set);

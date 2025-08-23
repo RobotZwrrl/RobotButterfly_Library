@@ -85,6 +85,7 @@ public:
     static void conductSet(String action);
     static void conductTeam(String action);
     static void conductorSubscribe();
+    static void mqttSubscribe(String topic);
     // --
 
     // -- state machine --
